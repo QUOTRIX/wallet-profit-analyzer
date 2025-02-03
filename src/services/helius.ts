@@ -36,51 +36,62 @@ export const getWalletTransactions = async (address: string): Promise<Transactio
   }
 };
 
-export const analyzeTradingPattern = (transactions: Transaction[]) => {
+const isOutgoingTransfer = (transfer: any, walletAddress: string) => {
+  return transfer.fromUserAccount.toLowerCase() === walletAddress.toLowerCase();
+};
+
+const calculateTransactionProfit = (tx: Transaction, walletAddress: string) => {
+  const incomingAmount = tx.nativeTransfers
+    .filter(t => !isOutgoingTransfer(t, walletAddress))
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const outgoingAmount = tx.nativeTransfers
+    .filter(t => isOutgoingTransfer(t, walletAddress))
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  return (incomingAmount - outgoingAmount) / 1000000000; // Convert to SOL
+};
+
+export const analyzeTradingPattern = (transactions: Transaction[], walletAddress: string) => {
   if (!transactions.length) return null;
 
   const trades = transactions.map(tx => {
-    const solanaPriceInLamports = 1000000000; // 1 SOL = 1B lamports
+    const solanaPriceInLamports = 1000000000;
+    const profit = calculateTransactionProfit(tx, walletAddress);
+    
     return {
       timestamp: tx.timestamp,
       fee: tx.fee / solanaPriceInLamports,
       type: tx.type,
+      profit: profit,
       transfers: tx.tokenTransfers || [],
       nativeTransfers: tx.nativeTransfers || []
     };
   }).sort((a, b) => b.timestamp - a.timestamp);
 
-  const timeGaps = trades
-    .slice(1)
-    .map((trade, i) => Math.abs(trade.timestamp - trades[i].timestamp));
-
-  const avgTimeGap = timeGaps.length 
-    ? timeGaps.reduce((acc, gap) => acc + gap, 0) / timeGaps.length
-    : 0;
-
-  const profitableTradesCount = trades.filter(trade => 
-    trade.nativeTransfers?.some(transfer => transfer.amount > 0)
-  ).length;
+  const profitableTrades = trades.filter(trade => trade.profit > 0);
+  const timeGaps = trades.slice(1).map((trade, i) => Math.abs(trade.timestamp - trades[i].timestamp));
+  const avgTimeGap = timeGaps.length ? timeGaps.reduce((acc, gap) => acc + gap, 0) / timeGaps.length : 0;
 
   const recentTrades = trades.slice(0, 30);
-  const tradeVolume = recentTrades.reduce((acc, trade) => 
-    acc + (trade.nativeTransfers?.reduce((sum, t) => sum + t.amount, 0) || 0), 
-    0
-  ) / 1000000000; // Convert lamports to SOL
+  const tradeVolume = recentTrades.reduce((acc, trade) => acc + Math.abs(trade.profit), 0);
 
   return {
     totalTrades: trades.length,
     averageFee: trades.reduce((acc, trade) => acc + trade.fee, 0) / trades.length,
     tradingFrequency: avgTimeGap / 3600,
     quickTrades: timeGaps.filter(gap => gap < 300).length,
-    profitableTradesRatio: (profitableTradesCount / trades.length) * 100,
+    profitableTradesRatio: (profitableTrades.length / trades.length) * 100,
+    totalProfit: trades.reduce((acc, trade) => acc + trade.profit, 0),
+    averageProfit: trades.reduce((acc, trade) => acc + trade.profit, 0) / trades.length,
     volumeLast30Trades: tradeVolume,
     averageVolume: tradeVolume / Math.min(trades.length, 30),
     tradingTimes: analyzeTradingTimes(trades),
     recentActivity: trades.slice(0, 10).map(t => ({
       time: new Date(t.timestamp * 1000).toLocaleString(),
       type: t.type,
-      fee: t.fee.toFixed(4)
+      fee: t.fee.toFixed(4),
+      profit: t.profit.toFixed(4)
     }))
   };
 };
