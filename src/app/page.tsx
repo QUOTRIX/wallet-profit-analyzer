@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { getWalletTransactions, analyzeTradingPattern } from '../services/helius';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Home() {
   const [address, setAddress] = useState('');
@@ -26,7 +25,8 @@ export default function Home() {
         return;
       }
 
-      const results = analyzeTradingPattern(transactions);
+      const results = analyzeTradingPattern(transactions, address);
+      console.log('Analysis results:', results);
       setAnalysis(results);
     } catch (err) {
       console.error('Analysis error:', err);
@@ -68,7 +68,6 @@ export default function Home() {
 
         {analysis && (
           <div className="space-y-6">
-            {/* Key Metrics */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-4">Key Metrics</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -85,39 +84,37 @@ export default function Home() {
                   <p className="text-2xl font-bold">{analysis.tradingFrequency.toFixed(1)} hrs</p>
                 </div>
                 <div className="p-4 bg-yellow-50 rounded-lg">
-                  <p className="text-sm text-yellow-600">Profitable Trades</p>
-                  <p className="text-2xl font-bold">{analysis.profitableTradesRatio.toFixed(1)}%</p>
+                  <p className="text-sm text-yellow-600">Total Profit</p>
+                  <p className="text-2xl font-bold">{analysis.totalProfit.toFixed(2)} SOL</p>
                 </div>
               </div>
             </div>
 
-            {/* Trading Behavior */}
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold mb-4">Trading Behavior</h2>
+              <h2 className="text-xl font-semibold mb-4">Trading Performance</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Quick Trades (&lt;5min)</p>
+                  <p className="text-sm text-gray-600">Profitable Trades</p>
+                  <p className="text-2xl font-bold">{analysis.profitableTradesRatio.toFixed(1)}%</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Average Profit</p>
+                  <p className="text-2xl font-bold">{analysis.averageProfit.toFixed(2)} SOL</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Quick Trades</p>
                   <p className="text-2xl font-bold">{analysis.quickTrades}</p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">30-Day Volume</p>
                   <p className="text-2xl font-bold">{analysis.volumeLast30Trades.toFixed(2)} SOL</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Average Volume</p>
-                  <p className="text-2xl font-bold">{analysis.averageVolume.toFixed(2)} SOL</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Weekend Trading</p>
-                  <p className="text-2xl font-bold">{analysis.tradingTimes.weekendTrades}</p>
-                </div>
               </div>
             </div>
 
-            {/* Trading Times */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-4">Trading Times</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">Morning (6-12)</p>
                   <p className="text-2xl font-bold">{analysis.tradingTimes.morningTrades}</p>
@@ -130,10 +127,13 @@ export default function Home() {
                   <p className="text-sm text-gray-600">Evening (18-6)</p>
                   <p className="text-2xl font-bold">{analysis.tradingTimes.eveningTrades}</p>
                 </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Weekend Trading</p>
+                  <p className="text-2xl font-bold">{analysis.tradingTimes.weekendTrades}</p>
+                </div>
               </div>
             </div>
 
-            {/* Recent Activity */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
               <div className="overflow-x-auto">
@@ -143,6 +143,7 @@ export default function Home() {
                       <th className="text-left p-2">Time</th>
                       <th className="text-left p-2">Type</th>
                       <th className="text-right p-2">Fee (SOL)</th>
+                      <th className="text-right p-2">Profit (SOL)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -151,6 +152,11 @@ export default function Home() {
                         <td className="p-2">{activity.time}</td>
                         <td className="p-2">{activity.type}</td>
                         <td className="p-2 text-right">{activity.fee}</td>
+                        <td className="p-2 text-right">
+                          <span className={activity.profit > 0 ? 'text-green-600' : 'text-red-600'}>
+                            {activity.profit}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
