@@ -8,17 +8,33 @@ export default function Home() {
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
+  const [error, setError] = useState('');
 
   const analyzeWallet = async () => {
-    if (!address) return;
+    if (!address) {
+      setError('Please enter a wallet address');
+      return;
+    }
     
     try {
       setLoading(true);
+      setError('');
+      console.log('Starting analysis for wallet:', address);
+      
       const transactions = await getWalletTransactions(address);
+      console.log('Received transactions:', transactions);
+      
+      if (!transactions || transactions.length === 0) {
+        setError('No transactions found for this wallet');
+        return;
+      }
+
       const results = analyzeTradingPattern(transactions);
+      console.log('Analysis results:', results);
       setAnalysis(results);
-    } catch (error) {
-      console.error('Error analyzing wallet:', error);
+    } catch (err: any) {
+      console.error('Analysis error:', err);
+      setError(err.message || 'Failed to analyze wallet');
     } finally {
       setLoading(false);
     }
@@ -29,9 +45,8 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Wallet Profit Analyzer</h1>
         
-        {/* Input Section */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <div className="flex gap-4">
+          <div className="flex gap-4 mb-4">
             <input
               type="text"
               value={address}
@@ -47,9 +62,14 @@ export default function Home() {
               {loading ? 'Analyzing...' : 'Analyze'}
             </button>
           </div>
+          
+          {error && (
+            <div className="text-red-500 mt-2">
+              {error}
+            </div>
+          )}
         </div>
 
-        {/* Results Section */}
         {analysis && (
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold mb-4">Analysis Results</h2>
@@ -61,19 +81,21 @@ export default function Home() {
               </div>
               <div className="p-4 bg-gray-50 rounded">
                 <p className="text-sm text-gray-600">Average Fee</p>
-                <p className="text-2xl font-bold">{analysis.averageFee.toFixed(4)} SOL</p>
+                <p className="text-2xl font-bold">{analysis.averageFee?.toFixed(4) || 0} SOL</p>
               </div>
               <div className="p-4 bg-gray-50 rounded">
                 <p className="text-sm text-gray-600">Trading Frequency</p>
-                <p className="text-2xl font-bold">{(analysis.tradingFrequency / 3600).toFixed(2)} hrs</p>
+                <p className="text-2xl font-bold">{(analysis.tradingFrequency / 3600)?.toFixed(2) || 0} hrs</p>
               </div>
               <div className="p-4 bg-gray-50 rounded">
-                <p className="text-sm text-gray-600">Profitable Trades</p>
-                <p className="text-2xl font-bold">{(analysis.profitableTradesRatio * 100).toFixed(1)}%</p>
+                <p className="text-sm text-gray-600">Quick Trades</p>
+                <p className="text-2xl font-bold">{analysis.quickTrades || 0}</p>
               </div>
             </div>
 
-            {/* Chart will be added in next commit */}
+            <pre className="bg-gray-100 p-4 rounded">
+              {JSON.stringify(analysis, null, 2)}
+            </pre>
           </div>
         )}
       </div>
