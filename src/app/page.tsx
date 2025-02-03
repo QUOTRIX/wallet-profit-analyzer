@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { getWalletTransactions, analyzeTradingPattern } from '../services/helius';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 export default function Home() {
   const [address, setAddress] = useState('');
@@ -10,6 +10,8 @@ export default function Home() {
   const [analysis, setAnalysis] = useState(null);
 
   const analyzeWallet = async () => {
+    if (!address) return;
+    
     try {
       setLoading(true);
       const transactions = await getWalletTransactions(address);
@@ -23,57 +25,57 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-8 bg-gray-50">
+    <main className="min-h-screen p-8 bg-gray-100">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Wallet Profit Analyzer</h1>
+        <h1 className="text-3xl font-bold mb-8">Wallet Profit Analyzer</h1>
         
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex gap-4 mb-4">
+        {/* Input Section */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <div className="flex gap-4">
             <input
               type="text"
-              placeholder="Enter Solana wallet address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              placeholder="Enter Solana wallet address"
               className="flex-1 p-2 border rounded"
             />
             <button
               onClick={analyzeWallet}
-              disabled={loading || !address}
+              disabled={loading}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
             >
               {loading ? 'Analyzing...' : 'Analyze'}
             </button>
           </div>
+        </div>
 
-          {analysis && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded">
-                  <h3 className="text-lg font-semibold mb-2">Trading Overview</h3>
-                  <p>Total Trades: {analysis.totalTrades}</p>
-                  <p>Average Fee: {analysis.averageFee} SOL</p>
-                  <p>Trading Frequency: {analysis.tradingFrequency} hours</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded">
-                  <h3 className="text-lg font-semibold mb-2">Profitability</h3>
-                  <p>Profitable Trades: {analysis.profitableTradesRatio}%</p>
-                </div>
+        {/* Results Section */}
+        {analysis && (
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">Analysis Results</h2>
+            
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="p-4 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">Total Trades</p>
+                <p className="text-2xl font-bold">{analysis.totalTrades}</p>
               </div>
-
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={analysis.priceHistory}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="value" stroke="#2563eb" />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="p-4 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">Average Fee</p>
+                <p className="text-2xl font-bold">{analysis.averageFee.toFixed(4)} SOL</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">Trading Frequency</p>
+                <p className="text-2xl font-bold">{(analysis.tradingFrequency / 3600).toFixed(2)} hrs</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded">
+                <p className="text-sm text-gray-600">Profitable Trades</p>
+                <p className="text-2xl font-bold">{(analysis.profitableTradesRatio * 100).toFixed(1)}%</p>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Chart will be added in next commit */}
+          </div>
+        )}
       </div>
     </main>
   );
