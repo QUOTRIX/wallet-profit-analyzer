@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { getWalletTransactions, analyzeTradingPattern } from '../services/helius';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Home() {
   const [address, setAddress] = useState('');
@@ -19,10 +19,7 @@ export default function Home() {
     try {
       setLoading(true);
       setError('');
-      console.log('Starting analysis for wallet:', address);
-      
       const transactions = await getWalletTransactions(address);
-      console.log('Received transactions:', transactions);
       
       if (!transactions || transactions.length === 0) {
         setError('No transactions found for this wallet');
@@ -30,9 +27,8 @@ export default function Home() {
       }
 
       const results = analyzeTradingPattern(transactions);
-      console.log('Analysis results:', results);
       setAnalysis(results);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Analysis error:', err);
       setError(err.message || 'Failed to analyze wallet');
     } finally {
@@ -42,7 +38,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-8 bg-gray-100">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Wallet Profit Analyzer</h1>
         
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
@@ -71,31 +67,96 @@ export default function Home() {
         </div>
 
         {analysis && (
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Analysis Results</h2>
-            
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="p-4 bg-gray-50 rounded">
-                <p className="text-sm text-gray-600">Total Trades</p>
-                <p className="text-2xl font-bold">{analysis.totalTrades}</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded">
-                <p className="text-sm text-gray-600">Average Fee</p>
-                <p className="text-2xl font-bold">{analysis.averageFee?.toFixed(4) || 0} SOL</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded">
-                <p className="text-sm text-gray-600">Trading Frequency</p>
-                <p className="text-2xl font-bold">{(analysis.tradingFrequency / 3600)?.toFixed(2) || 0} hrs</p>
-              </div>
-              <div className="p-4 bg-gray-50 rounded">
-                <p className="text-sm text-gray-600">Quick Trades</p>
-                <p className="text-2xl font-bold">{analysis.quickTrades || 0}</p>
+          <div className="space-y-6">
+            {/* Key Metrics */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold mb-4">Key Metrics</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-600">Total Trades</p>
+                  <p className="text-2xl font-bold">{analysis.totalTrades}</p>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-600">Average Fee</p>
+                  <p className="text-2xl font-bold">{analysis.averageFee.toFixed(4)} SOL</p>
+                </div>
+                <div className="p-4 bg-purple-50 rounded-lg">
+                  <p className="text-sm text-purple-600">Trading Frequency</p>
+                  <p className="text-2xl font-bold">{analysis.tradingFrequency.toFixed(1)} hrs</p>
+                </div>
+                <div className="p-4 bg-yellow-50 rounded-lg">
+                  <p className="text-sm text-yellow-600">Profitable Trades</p>
+                  <p className="text-2xl font-bold">{analysis.profitableTradesRatio.toFixed(1)}%</p>
+                </div>
               </div>
             </div>
 
-            <pre className="bg-gray-100 p-4 rounded">
-              {JSON.stringify(analysis, null, 2)}
-            </pre>
+            {/* Trading Behavior */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold mb-4">Trading Behavior</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Quick Trades (&lt;5min)</p>
+                  <p className="text-2xl font-bold">{analysis.quickTrades}</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">30-Day Volume</p>
+                  <p className="text-2xl font-bold">{analysis.volumeLast30Trades.toFixed(2)} SOL</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Average Volume</p>
+                  <p className="text-2xl font-bold">{analysis.averageVolume.toFixed(2)} SOL</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Weekend Trading</p>
+                  <p className="text-2xl font-bold">{analysis.tradingTimes.weekendTrades}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Trading Times */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold mb-4">Trading Times</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Morning (6-12)</p>
+                  <p className="text-2xl font-bold">{analysis.tradingTimes.morningTrades}</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Afternoon (12-18)</p>
+                  <p className="text-2xl font-bold">{analysis.tradingTimes.afternoonTrades}</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Evening (18-6)</p>
+                  <p className="text-2xl font-bold">{analysis.tradingTimes.eveningTrades}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-2">Time</th>
+                      <th className="text-left p-2">Type</th>
+                      <th className="text-right p-2">Fee (SOL)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analysis.recentActivity.map((activity, index) => (
+                      <tr key={index} className="border-t">
+                        <td className="p-2">{activity.time}</td>
+                        <td className="p-2">{activity.type}</td>
+                        <td className="p-2 text-right">{activity.fee}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>
