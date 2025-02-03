@@ -62,12 +62,20 @@ export const analyzeTradingPattern = (transactions: Transaction[]) => {
     trade.nativeTransfers?.some(transfer => transfer.amount > 0)
   ).length;
 
+  const recentTrades = trades.slice(0, 30);
+  const tradeVolume = recentTrades.reduce((acc, trade) => 
+    acc + (trade.nativeTransfers?.reduce((sum, t) => sum + t.amount, 0) || 0), 
+    0
+  ) / 1000000000; // Convert lamports to SOL
+
   return {
     totalTrades: trades.length,
     averageFee: trades.reduce((acc, trade) => acc + trade.fee, 0) / trades.length,
     tradingFrequency: avgTimeGap / 3600,
     quickTrades: timeGaps.filter(gap => gap < 300).length,
     profitableTradesRatio: (profitableTradesCount / trades.length) * 100,
+    volumeLast30Trades: tradeVolume,
+    averageVolume: tradeVolume / Math.min(trades.length, 30),
     tradingTimes: analyzeTradingTimes(trades),
     recentActivity: trades.slice(0, 10).map(t => ({
       time: new Date(t.timestamp * 1000).toLocaleString(),
