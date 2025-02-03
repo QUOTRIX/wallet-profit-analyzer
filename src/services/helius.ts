@@ -33,3 +33,29 @@ export const getWalletTransactions = async (address: string): Promise<Transactio
     throw new Error(`Failed to fetch transactions: ${error.message}`);
   }
 };
+
+export const analyzeTradingPattern = (transactions: Transaction[]) => {
+  if (!transactions.length) return null;
+
+  const trades = transactions.map(tx => ({
+    timestamp: tx.timestamp,
+    fee: tx.fee,
+    type: tx.type,
+  }));
+
+  const timeGaps = trades
+    .slice(1)
+    .map((trade, i) => trade.timestamp - trades[i].timestamp);
+
+  const avgTimeGap = timeGaps.length 
+    ? timeGaps.reduce((acc, gap) => acc + gap, 0) / timeGaps.length
+    : 0;
+
+  return {
+    totalTrades: trades.length,
+    averageFee: trades.reduce((acc, trade) => acc + trade.fee, 0) / trades.length,
+    tradingFrequency: avgTimeGap,
+    quickTrades: timeGaps.filter(gap => gap < 300).length, // Trades within 5 minutes
+    trades: trades
+  };
+};
