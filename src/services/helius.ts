@@ -26,84 +26,12 @@ export const getWalletTransactions = async (address: string): Promise<Transactio
   try {
     const response = await axios.get(`${BASE_URL}/addresses/${address}/transactions`, {
       params: {
-        'api-key': API_KEY,
-        'until': Date.now(),
-        'before': Date.now() - (30 * 24 * 60 * 60 * 1000), // Last 30 days
-      },
+        'api-key': API_KEY
+      }
     });
     return response.data;
   } catch (error: any) {
     console.error('API Error:', error.response?.data || error.message);
     throw new Error(`Failed to fetch transactions: ${error.message}`);
   }
-};
-
-export const analyzeTradingPattern = (transactions: Transaction[]) => {
-  if (!transactions.length) return null;
-
-  const trades = transactions.map(tx => {
-    const solanaPriceInLamports = 1000000000; // 1 SOL = 1B lamports
-    return {
-      timestamp: tx.timestamp,
-      fee: tx.fee / solanaPriceInLamports, // Convert lamports to SOL
-      type: tx.type,
-      transfers: tx.tokenTransfers || [],
-      nativeTransfers: tx.nativeTransfers || []
-    };
-  }).sort((a, b) => b.timestamp - a.timestamp);
-
-  const timeGaps = trades
-    .slice(1)
-    .map((trade, i) => Math.abs(trade.timestamp - trades[i].timestamp));
-
-  const avgTimeGap = timeGaps.length 
-    ? timeGaps.reduce((acc, gap) => acc + gap, 0) / timeGaps.length
-    : 0;
-
-  const profitableTradesCount = trades.filter(trade => 
-    trade.nativeTransfers.some(transfer => transfer.amount > 0)
-  ).length;
-
-  const recentTrades = trades.slice(0, 30);
-  const tradeVolume = recentTrades.reduce((acc, trade) => 
-    acc + (trade.nativeTransfers?.reduce((sum, t) => sum + t.amount, 0) || 0), 
-    0
-  ) / solanaPriceInLamports;
-
-  return {
-    totalTrades: trades.length,
-    averageFee: trades.reduce((acc, trade) => acc + trade.fee, 0) / trades.length,
-    tradingFrequency: avgTimeGap / 3600, // Convert to hours
-    quickTrades: timeGaps.filter(gap => gap < 300).length, // Trades within 5 minutes
-    profitableTradesRatio: (profitableTradesCount / trades.length) * 100,
-    volumeLast30Trades: tradeVolume,
-    averageVolume: tradeVolume / Math.min(trades.length, 30),
-    tradingTimes: analyzeTradingTimes(trades),
-    recentActivity: trades.slice(0, 10).map(t => ({
-      time: new Date(t.timestamp * 1000).toLocaleString(),
-      type: t.type,
-      fee: t.fee.toFixed(4)
-    }))
-  };
-};
-
-const analyzeTradingTimes = (trades: any[]) => {
-  return {
-    morningTrades: trades.filter(t => {
-      const hour = new Date(t.timestamp * 1000).getHours();
-      return hour >= 6 && hour < 12;
-    }).length,
-    afternoonTrades: trades.filter(t => {
-      const hour = new Date(t.timestamp * 1000).getHours();
-      return hour >= 12 && hour < 18;
-    }).length,
-    eveningTrades: trades.filter(t => {
-      const hour = new Date(t.timestamp * 1000).getHours();
-      return hour >= 18 || hour < 6;
-    }).length,
-    weekendTrades: trades.filter(t => {
-      const day = new Date(t.timestamp * 1000).getDay();
-      return day === 0 || day === 6;
-    }).length
-  };
 };
