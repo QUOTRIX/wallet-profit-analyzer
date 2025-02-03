@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { getWalletTransactions, analyzeTradingPattern } from '../services/helius';
 import CopyTradeScore from '../components/CopyTradeScore';
+import TradingAdvice from '../components/TradingAdvice';
 
 export default function Home() {
   const [address, setAddress] = useState('');
@@ -27,7 +28,6 @@ export default function Home() {
       }
 
       const results = analyzeTradingPattern(transactions, address);
-      console.log('Analysis results:', results);
       setAnalysis(results);
     } catch (err) {
       console.error('Analysis error:', err);
@@ -69,6 +69,8 @@ export default function Home() {
 
         {analysis && (
           <div className="space-y-6">
+            <TradingAdvice analysis={analysis} />
+
             {analysis.copyTradingScore && (
               <CopyTradeScore 
                 score={analysis.copyTradingScore}
